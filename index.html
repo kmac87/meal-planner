@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Meal Planner + Trader Joe's List</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#ffffff; --ink:#211f1b; --muted:#6c665d; --faint:#948d82;
+    --line:#e8e2d8; --line-2:#f0ebe2;
+    --accent:#b3432a; --accent-ink:#90331d; --sage:#4e7a57; --gold:#bf8f2c; --slate:#435c87;
+    --chip:#f0ece4;
+    --sh-sm:0 1px 2px rgba(33,28,20,.05);
+    --sh-md:0 1px 2px rgba(33,28,20,.04),0 10px 26px rgba(33,28,20,.055);
+    --r-lg:18px; --r-md:13px; --r-sm:10px;
+    --sans:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Hoefler Text",Georgia,ui-serif,serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--ink);
+    line-height:1.55;font-size:16px;letter-spacing:-.005em;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:940px;margin:0 auto;padding:24px 18px 100px;}
+
+  header.top{text-align:center;padding:8px 0 2px;}
+  header.top h1{margin:0;font-family:var(--serif);font-weight:600;font-size:2.05rem;letter-spacing:-.01em;}
+  header.top .sub{margin:7px 0 0;color:var(--muted);font-size:.98rem;}
+
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0 14px;}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:15px 17px;box-shadow:var(--sh-sm);}
+  .tile .t-num{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .tile .t-num.money{color:var(--sage);}
+  .tile .t-cap{font-size:.69rem;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:700;margin-top:4px;}
+
+  .fineprint{font-size:.8rem;color:var(--muted);margin:0 2px 4px;line-height:1.55;border-left:2px solid var(--line);padding-left:11px;}
+
+  .tabs{display:flex;gap:4px;background:var(--chip);padding:4px;border-radius:999px;margin:16px 0 22px;
+    position:sticky;top:10px;z-index:30;box-shadow:var(--sh-sm);}
+  .tabs button{flex:1;border:0;background:transparent;padding:11px 8px;border-radius:999px;font-size:.9rem;
+    font-weight:650;color:var(--muted);cursor:pointer;transition:color .15s,background .2s,box-shadow .2s;min-height:44px;font-family:inherit;letter-spacing:-.01em;}
+  .tabs button:hover{color:var(--ink);}
+  .tabs button.active{background:var(--card);color:var(--ink);box-shadow:var(--sh-sm);}
+  .tabs button svg{display:none;width:21px;height:21px;}
+  section.view{display:none;}
+  section.view.active{display:block;animation:fade .3s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+  details.day{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);margin-bottom:12px;box-shadow:var(--sh-md);overflow:hidden;}
+  details.day > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:16px 18px;min-height:58px;}
+  details.day > summary::-webkit-details-marker{display:none;}
+  details.day .d-day{font-family:var(--serif);font-weight:600;font-size:1.08rem;flex:none;min-width:78px;letter-spacing:-.01em;}
+  details.day .d-sum{color:var(--muted);font-size:.9rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  details.day .d-chev{flex:none;width:8px;height:8px;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(45deg);transition:transform .2s;margin-left:4px;}
+  details.day[open] .d-chev{transform:rotate(-135deg);}
+  details.day[open] > summary{border-bottom:1px solid var(--line-2);}
+  details.day > summary:hover .d-sum{color:var(--ink);}
+  .day-body{padding:16px 18px 18px;}
+  .plan-tools{display:flex;gap:8px;justify-content:flex-end;margin:0 0 12px;}
+  .slot{margin:15px 0 0;}
+  .slot:first-of-type{margin-top:0;}
+  .lbl{display:block;font-size:.67rem;text-transform:uppercase;letter-spacing:.09em;color:var(--faint);font-weight:700;margin-bottom:6px;}
+  .lbl small{font-weight:600;letter-spacing:0;text-transform:none;color:var(--faint);}
+  select{width:100%;font-size:1rem;padding:12px 40px 12px 13px;border:1px solid var(--line);border-radius:var(--r-sm);
+    background-color:var(--card);color:var(--ink);font-family:inherit;min-height:46px;-webkit-appearance:none;appearance:none;cursor:pointer;
+    transition:border-color .15s,box-shadow .15s;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236c665d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 14px center;}
+  select:hover{border-color:#d8d0c2;}
+  select:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(179,67,42,.14);}
+
+  .meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:9px 0 0;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:650;color:#5d574e;background:var(--chip);border-radius:999px;padding:4px 10px;letter-spacing:-.005em;}
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--dot,#bbb);}
+  .chip.fam{--dot:var(--sage);} .chip.kid{--dot:var(--gold);} .chip.adult{--dot:var(--slate);}
+  .chip.premade{--dot:var(--accent);} .chip.backup{--dot:#9a9289;}
+  .chip.cost{font-variant-numeric:tabular-nums;} .chip.fiber{color:#6c665d;}
+  .chip.fiberhi{background:#e8f0e9;color:#3c6647;}
+  .note{font-size:.84rem;color:var(--muted);margin:9px 0 0;line-height:1.5;}
+
+  details.recipe{margin:12px 0 0;border-top:1px solid var(--line-2);padding-top:10px;}
+  details.recipe summary{cursor:pointer;font-size:.8rem;font-weight:700;color:var(--accent-ink);list-style:none;display:inline-flex;align-items:center;gap:8px;padding:3px 0;min-height:28px;letter-spacing:.01em;}
+  details.recipe summary::-webkit-details-marker{display:none;}
+  details.recipe summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .18s;}
+  details.recipe[open] summary::before{transform:rotate(45deg);}
+  details.recipe ol{margin:9px 0 2px;padding-left:20px;font-size:.9rem;color:var(--ink);}
+  details.recipe ol li{margin:6px 0;line-height:1.5;}
+
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:2px 0 14px;flex-wrap:wrap;}
+  .panel-head h2{margin:0;font-family:var(--serif);font-weight:600;font-size:1.5rem;letter-spacing:-.01em;}
+  .grouphd{font-family:var(--serif);font-weight:600;font-size:1.12rem;margin:24px 0 11px;display:flex;align-items:center;gap:12px;}
+  .snack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:10px;}
+  .snack{display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:13px 14px;cursor:pointer;box-shadow:var(--sh-sm);transition:border-color .15s,transform .12s,box-shadow .15s;min-height:44px;}
+  .snack:hover{border-color:#d6cdbd;transform:translateY(-1px);box-shadow:var(--sh-md);}
+  .snack:has(input:checked){border-color:var(--sage);background:#fbfdfb;}
+  .snack input{margin-top:2px;width:19px;height:19px;accent-color:var(--sage);flex:none;cursor:pointer;}
+  .snack .s-name{font-weight:650;font-size:.92rem;}
+  .snack .s-sub{font-size:.78rem;color:var(--muted);}
+
+  .btn{border:0;border-radius:var(--r-sm);padding:12px 16px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px;
+    transition:transform .12s,box-shadow .15s,background .15s,border-color .15s;letter-spacing:-.005em;}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:var(--ink);color:#fff;}
+  .btn.gold{background:var(--accent);color:#fff;box-shadow:var(--sh-sm);}
+  .btn.gold:hover{background:var(--accent-ink);}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);}
+  .btn.ghost:hover{border-color:#d2c9ba;background:var(--card);}
+  .btn.mini{padding:7px 13px;min-height:32px;font-size:.78rem;font-weight:650;}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(179,67,42,.18);}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .list-section{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:12px;box-shadow:var(--sh-sm);overflow:hidden;}
+  .list-section h4{margin:0;padding:12px 16px;background:#faf7f1;font-size:.73rem;text-transform:uppercase;letter-spacing:.08em;color:#6a6253;
+    display:flex;justify-content:space-between;align-items:center;font-weight:700;border-bottom:1px solid var(--line-2);}
+  .list-section h4 .ct{color:var(--faint);font-weight:700;font-size:.78rem;font-variant-numeric:tabular-nums;}
+  ul.items{list-style:none;margin:0;padding:2px 0;}
+  ul.items li{display:flex;align-items:center;gap:13px;padding:11px 16px;font-size:.96rem;border-top:1px solid var(--line-2);min-height:48px;}
+  ul.items li:first-child{border-top:0;}
+  ul.items li input{width:21px;height:21px;accent-color:var(--sage);flex:none;cursor:pointer;}
+  ul.items li label{flex:1;cursor:pointer;}
+  ul.items li.checked label{text-decoration:line-through;color:var(--faint);}
+  ul.items li .price{color:var(--muted);font-size:.88rem;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  ul.items li .qtytxt{color:var(--faint);font-size:.78rem;}
+  ul.items li.skipped{opacity:.48;}
+  ul.items li.skipped .price{text-decoration:line-through;}
+  .skip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:6px 11px;font-size:.72rem;font-weight:700;
+    cursor:pointer;font-family:inherit;min-height:32px;white-space:nowrap;transition:.15s;}
+  .skip:hover{border-color:#d2c9ba;}
+  .skip.on{background:#eef5ef;color:var(--sage);border-color:#cfe3d2;}
+
+  .fiber-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px;margin:0 0 14px;box-shadow:var(--sh-md);}
+  .fiber-card h3{margin:0 0 13px;font-family:var(--serif);font-weight:600;font-size:1.08rem;display:flex;align-items:center;gap:8px;}
+  .gauge .glabel{display:flex;justify-content:space-between;gap:8px;font-size:.84rem;font-weight:650;margin-bottom:6px;}
+  .gauge .gval{color:var(--muted);font-variant-numeric:tabular-nums;}
+  .gauge .track{background:var(--chip);border-radius:999px;height:10px;overflow:hidden;}
+  .gauge .fill{height:100%;border-radius:999px;background:var(--sage);width:0;transition:width .45s cubic-bezier(.4,0,.2,1);}
+  .gauge .fill.under{background:var(--gold);}
+  .fiber-tip{font-size:.8rem;color:var(--muted);margin-top:8px;line-height:1.5;}
+
+  .season-bar{background:#eef4ef;border:1px solid #d4e3d6;border-radius:var(--r-md);padding:11px 15px;margin:0 0 14px;font-size:.88rem;color:#3a6044;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;}
+
+  .total-bar{position:sticky;bottom:12px;background:var(--ink);color:#fff;border-radius:var(--r-md);padding:15px 20px;
+    display:flex;justify-content:space-between;align-items:center;margin-top:8px;box-shadow:0 6px 22px rgba(33,28,20,.22);}
+  .total-bar .lab{font-size:.73rem;opacity:.75;text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
+  .total-bar .amt{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .empty{text-align:center;color:var(--muted);padding:44px 20px;}
+  .legend{font-size:.82rem;color:var(--muted);margin:14px 2px 0;line-height:1.7;}
+  .legend .chip{margin:0 2px;vertical-align:middle;}
+  footer{text-align:center;color:var(--faint);font-size:.76rem;margin-top:28px;line-height:1.7;}
+
+  @media print{
+    .tabs,.toolbar,.fineprint,.no-print,.summary,.season-bar{display:none!important;}
+    section.view{display:block!important;}
+    body{background:#fff;}
+    .day,.list-section,.snack,.fiber-card{box-shadow:none;break-inside:avoid;}
+    .total-bar{position:static;background:#fff;color:#000;border:2px solid #000;}
+    details.recipe ol{display:block;}
+  }
+  @media(max-width:600px){
+    header.top h1{font-size:1.62rem;}
+    .summary{grid-template-columns:1fr;}
+    .tile{display:flex;align-items:baseline;justify-content:space-between;}
+    .tile .t-cap{margin-top:0;}
+    .wrap{padding-bottom:calc(88px + env(safe-area-inset-bottom));}
+    /* thumb-reachable bottom navigation */
+    .tabs{position:fixed;left:0;right:0;bottom:0;top:auto;margin:0;border-radius:0;gap:2px;z-index:50;
+      background:rgba(255,255,255,.94);backdrop-filter:saturate(1.6) blur(10px);-webkit-backdrop-filter:saturate(1.6) blur(10px);
+      border-top:1px solid var(--line);box-shadow:0 -3px 16px rgba(33,28,20,.08);
+      padding:7px 8px calc(7px + env(safe-area-inset-bottom));}
+    .tabs button{flex-direction:column;gap:3px;font-size:.68rem;font-weight:650;border-radius:12px;min-height:54px;}
+    .tabs button svg{display:block;}
+    .tabs button.active{background:transparent;color:var(--accent);box-shadow:none;}
+    .total-bar{bottom:calc(66px + env(safe-area-inset-bottom));}
+    .day-body{padding:14px 16px 16px;}
+    details.day > summary{padding:15px 16px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Our Weekly Meal Planner</h1>
+    <p class="sub">Lunches, dinners, snacks &amp; easy recipes — with a live Trader Joe's list</p>
+  </header>
+
+  <div class="summary">
+    <div class="tile"><div class="t-num money" id="heroTotal">$0</div><div class="t-cap">Est. weekly cost</div></div>
+    <div class="tile"><div class="t-num" id="heroItems">0</div><div class="t-cap">Items to buy</div></div>
+    <div class="tile"><div class="t-num" id="heroFiber">~0g</div><div class="t-cap">Your fiber / 25g</div></div>
+  </div>
+
+  <p class="fineprint">Built around your rules — low FODMAP (no onion/garlic), dairy only if fully baked, no pumpkin/sesame seeds or chickpeas. Prices are estimates that vary by region; check labels in-store.</p>
+
+  <div class="tabs" role="tablist">
+    <button data-tab="plan" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Plan</span></button>
+    <button data-tab="snacks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7c1.2-3 3.5-4 6-3.5C17.5 6 15.5 7 12 7z"/><path d="M9.5 7C6 7 4 10 4 13.5S6.5 21 10 21c1 0 1.5-.5 2-.5s1 .5 2 .5c3.5 0 6-4 6-7.5S18 7 14.5 7c-1 0-1.8.5-2.5.9C11.3 7.5 10.5 7 9.5 7z"/></svg><span>Snacks</span></button>
+    <button data-tab="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="19" cy="20" r="1.4"/><path d="M2 3h3l2.2 12.2a1.6 1.6 0 0 0 1.6 1.3h9a1.6 1.6 0 0 0 1.6-1.3L21 7H6"/></svg><span>List</span></button>
+  </div>
+
+  <section class="view active" id="plan">
+    <div class="season-bar" id="seasonBar"></div>
+    <div class="plan-tools"><button class="btn ghost mini" id="expandAll">Expand all</button><button class="btn ghost mini" id="collapseAll">Collapse all</button></div>
+    <div class="fiber-card">
+      <h3>Insoluble fiber focus</h3>
+      <div class="gauge" id="adultGauge"><div class="glabel"><span>Grown-up — goal 25g/day</span><span class="gval">~0g</span></div><div class="track"><div class="fill"></div></div></div>
+      <div class="fiber-tip" id="adultTip"></div>
+      <div class="gauge" id="kidGauge" style="margin-top:14px"><div class="glabel"><span>Kids — ~10g/day (4-yr-old)</span><span class="gval">~0g</span></div><div class="track"><div class="fill"></div></div></div>
+      <div class="fiber-tip">Your 2-year-old needs less (~7–8g) — no need to push it. Estimates are rough and assume ~2 snacks/day; breakfast (your call) adds more.</div>
+    </div>
+    <div id="days"></div>
+    <div class="legend">Dinner is shared by the whole family; kids and grown-ups each pick their own lunch. Swap anything and the cost, fiber and shopping list update.
+      <br><span class="chip fam"><i class="dot"></i>Whole family</span> <span class="chip kid"><i class="dot"></i>Kid</span> <span class="chip adult"><i class="dot"></i>Grown-up</span> <span class="chip premade"><i class="dot"></i>TJ's premade</span> <span class="chip backup"><i class="dot"></i>Backup</span></div>
+  </section>
+
+  <section class="view" id="snacks">
+    <div class="panel-head">
+      <h2>Snacks for the week</h2>
+    </div>
+    <p class="legend" style="margin-top:0">Kids and grown-ups stock different snacks — tick each list separately. Everything flows into the shopping total.</p>
+    <h3 class="grouphd"><span class="chip kid"><i class="dot"></i></span>Kids' snacks <button class="btn ghost mini" data-clear="kid" style="margin-left:auto">Clear</button></h3>
+    <div class="snack-grid" id="kidSnackGrid"></div>
+    <h3 class="grouphd"><span class="chip adult"><i class="dot"></i></span>Grown-ups' snacks <button class="btn ghost mini" data-clear="adult" style="margin-left:auto">Clear</button></h3>
+    <div class="snack-grid" id="adultSnackGrid"></div>
+  </section>
+
+  <section class="view" id="list">
+    <div class="panel-head">
+      <h2>Trader Joe's list</h2>
+      <div class="toolbar">
+        <button class="btn ghost" id="skipStaples">I have the staples</button>
+        <button class="btn ghost" id="uncheckAll">Reset</button>
+        <button class="btn gold" onclick="window.print()">Print / Save PDF</button>
+      </div>
+    </div>
+    <p class="legend" style="margin-top:0">Tap the checkbox to tick items off as you shop. Tap <b>Have it</b> on anything you already own — the total drops by that amount.</p>
+    <div id="listOut"></div>
+    <div class="total-bar"><span class="lab">Estimated total</span><span class="amt" id="listTotal">$0</span></div>
+  </section>
+
+  <footer>
+    Made for the family • Open in any browser, no account needed • Choices & checkmarks save on this device.<br>
+    Prices are approximate and meant for budgeting, not exact totals.
+  </footer>
+</div>
+
+<script>
+/* ingredient line: [item, qty, unit, section, pkgPrice]  (price = per package) */
+const SECTIONS = ["Produce","Meat & Seafood","Prepared (grab & go)","Dairy & Alternatives","Frozen","Bakery & Bread","Pantry & Dry Goods","Snacks"];
+
+const DINNERS = [
+  {id:"d_sheetpan", name:"Sheet-pan chicken, potatoes & carrots", aud:"fam", cost:11,
+   recipe:["Heat oven to 425°F. Halve baby potatoes; cut carrots into sticks.",
+           "Toss potatoes, carrots & chicken on a sheet pan with garlic-infused olive oil, salt & rosemary.",
+           "Roast 25–30 min until chicken hits 165°F. Kids: serve plain pieces."],
+   ings:[["Chicken breast or tenders",1,"lb","Meat & Seafood",5.49],["Baby potatoes",1,"bag","Produce",2.99],
+         ["Carrots",1,"bag","Produce",1.29],["Fresh rosemary",1,"pkg","Produce",1.99]]},
+  {id:"d_turkeybowl", name:"Turkey rice bowls (taco-style, no beans)", aud:"fam", cost:9,
+   recipe:["Cook rice. Brown ground turkey in a pan with a little olive oil.",
+           "Stir in Chile Lime seasoning + a pinch of cumin; squeeze in lime.",
+           "Build bowls with rice, turkey, chopped lettuce & tomato. Kids: turkey + rice plain."],
+   ings:[["Ground turkey",1,"lb","Meat & Seafood",4.49],["Jasmine or basmati rice",1,"bag","Pantry & Dry Goods",2.99],
+         ["Romaine or little gem lettuce",1,"head","Produce",2.49],["Roma tomatoes",3,"ct","Produce",0.50],
+         ["Limes",2,"ct","Produce",0.39],["Chile Lime Seasoning",1,"jar","Pantry & Dry Goods",1.99]]},
+  {id:"d_pasta", name:"Olive-oil pasta + simple tomato", aud:"fam", cost:7,
+   recipe:["Boil gluten-free pasta per package.",
+           "Warm crushed tomatoes in garlic-infused oil with salt & torn basil; sauté diced zucchini 5 min.",
+           "Toss pasta with sauce. Kids: just butter/oil + a little parm."],
+   ings:[["Gluten-free pasta (rice/corn)",1,"box","Pantry & Dry Goods",2.99],["Canned crushed tomatoes (plain)",1,"can","Pantry & Dry Goods",1.99],
+         ["Fresh basil",1,"pkg","Produce",2.49],["Zucchini",2,"ct","Produce",0.99]]},
+  {id:"d_nuggets", name:"Chicken nuggets, oven fries & veggie sticks", aud:"kid", cost:9,
+   recipe:["Bake nuggets + fries per package (~20 min at 425°F).",
+           "Cut cucumber, carrot & bell pepper into sticks.",
+           "Plate and serve. Check breading is sesame-free."],
+   ings:[["Chicken nuggets (frozen)",1,"bag","Frozen",4.99],["Frozen fries",1,"bag","Frozen",2.99],
+         ["Cucumbers",2,"ct","Produce",0.69],["Carrots",1,"bag","Produce",1.29],["Red bell peppers",2,"ct","Produce",1.29]]},
+  {id:"d_tacos", name:"Beef tacos on corn tortillas", aud:"fam", cost:11,
+   recipe:["Brown ground beef; season with Chile Lime, paprika & salt.",
+           "Warm corn tortillas in a dry pan.",
+           "Fill with beef, lettuce, tomato, olives & a squeeze of lime. Kids: beef + tortilla."],
+   ings:[["Ground beef",1,"lb","Meat & Seafood",6.49],["Corn tortillas",1,"pkg","Bakery & Bread",1.99],
+         ["Romaine or little gem lettuce",1,"head","Produce",2.49],["Roma tomatoes",3,"ct","Produce",0.50],
+         ["Black olives (sliced)",1,"can","Pantry & Dry Goods",1.99],["Limes",2,"ct","Produce",0.39]]},
+  {id:"d_salmon", name:"Baked salmon, rice & green beans", aud:"adult", cost:15,
+   recipe:["Heat oven to 400°F. Put salmon on foil; drizzle olive oil, lemon & salt.",
+           "Bake 12–15 min until it flakes.",
+           "Cook rice; sauté or steam green beans. Serve with lemon wedges."],
+   ings:[["Salmon fillets",1,"lb","Meat & Seafood",10.99],["Green beans",1,"bag","Produce",2.49],
+         ["Lemons",2,"ct","Produce",0.69],["Jasmine or basmati rice",1,"bag","Pantry & Dry Goods",2.99]]},
+  {id:"d_shrimp", name:"Lemon shrimp & rice", aud:"adult", cost:13,
+   recipe:["Cook rice. Pat shrimp dry.",
+           "Sauté shrimp in garlic-infused oil 2–3 min per side; finish with lemon, salt & scallion greens.",
+           "Serve over rice with green beans on the side."],
+   ings:[["Shrimp (peeled, frozen)",1,"bag","Frozen",8.99],["Jasmine or basmati rice",1,"bag","Pantry & Dry Goods",2.99],
+         ["Lemons",2,"ct","Produce",0.69],["Scallions (green tops only)",1,"bunch","Produce",0.99],
+         ["Green beans",1,"bag","Produce",2.49]]},
+  {id:"d_steak", name:"Steak bites & crispy potatoes", aud:"adult", cost:15,
+   recipe:["Roast halved baby potatoes at 425°F for 25 min with oil & salt.",
+           "Cube steak; sear in a hot pan with oil + salt, 2–3 min, leaving it pink inside.",
+           "Toss potatoes with rosemary; plate with steak and a green-bean side."],
+   ings:[["Sirloin steak tips",1,"lb","Meat & Seafood",9.99],["Baby potatoes",1,"bag","Produce",2.99],
+         ["Fresh rosemary",1,"pkg","Produce",1.99],["Green beans",1,"bag","Produce",2.49]]},
+  {id:"d_macncheese", name:"Baked mac & cheese + veggie sticks", aud:"kid", cost:6,
+   recipe:["Cook mac & cheese per package.",
+           "Spoon into a baking dish, bake 10 min at 400°F until set — baking the cheese keeps it OK for us.",
+           "Serve with cucumber & carrot sticks on the side."],
+   ings:[["Macaroni & cheese (to bake)",1,"box","Pantry & Dry Goods",3.49],["Cucumbers",2,"ct","Produce",0.69],
+         ["Carrots",1,"bag","Produce",1.29]]},
+  {id:"d_waffles", name:"Breakfast-for-dinner: waffles, eggs & berries", aud:"fam", cost:8,
+   recipe:["Toast frozen waffles.",
+           "Scramble or fry eggs alongside.",
+           "Serve with berries and a drizzle of maple syrup. Easy crowd-pleaser."],
+   ings:[["Frozen waffles",1,"box","Frozen",2.99],["Eggs",1,"dozen","Dairy & Alternatives",4.49],
+         ["Blueberries",1,"pkg","Produce",3.49],["Maple syrup",1,"bottle","Pantry & Dry Goods",7.99]]},
+  {id:"d_pizza", name:"Frozen pizza (backup night)", aud:"backup", cost:6,
+   recipe:["Bake the pizza per package directions.",
+           "Add a quick side salad or veggie sticks if you want.",
+           "Heads-up: this is an off-plan convenience backup — check the sauce for onion/garlic if that's a concern tonight."],
+   ings:[["Frozen pizza",1,"ct","Frozen",4.99]]},
+];
+
+const LUNCHES = [
+  {id:"l_rollups", name:"Turkey roll-ups + fruit & crackers", aud:"fam", cost:6,
+   note:"Roll deli turkey (add lactose-free cheese for adults). Serve with grapes, plain rice crackers & carrots.",
+   ings:[["Sliced deli turkey",1,"pkg","Meat & Seafood",4.49],["Grapes",1,"bag","Produce",3.99],
+         ["Rice crackers (plain)",1,"box","Pantry & Dry Goods",2.99],["Carrots",1,"bag","Produce",1.29]]},
+  {id:"l_bento", name:"Snack-plate / bento lunch", aud:"fam", cost:7,
+   note:"Deli meat, lactose-free cheese, crackers, blueberries & cucumber. No cooking.",
+   ings:[["Sliced deli turkey",1,"pkg","Meat & Seafood",4.49],["Lactose-free cheddar or string cheese",1,"pkg","Dairy & Alternatives",3.99],
+         ["Rice crackers (plain)",1,"box","Pantry & Dry Goods",2.99],["Blueberries",1,"pkg","Produce",3.49],["Cucumbers",2,"ct","Produce",0.69]]},
+  {id:"l_quesadilla", name:"Cheese quesadilla + fruit & veggie", aud:"kid", cost:5,
+   note:"Crisp cheese in a corn tortilla (lactose-free for adults). Round it out with strawberries and cucumber sticks for fiber & balance.",
+   ings:[["Corn tortillas",1,"pkg","Bakery & Bread",1.99],["Lactose-free cheddar or string cheese",1,"pkg","Dairy & Alternatives",3.99],
+         ["Strawberries",1,"pkg","Produce",3.99],["Cucumbers",2,"ct","Produce",0.69]]},
+  {id:"l_pastasalad", name:"Cold pasta salad", aud:"fam", cost:5,
+   note:"GF pasta with cucumber, bell pepper, olive oil & salt. Kids: add a little parm.",
+   ings:[["Gluten-free pasta (rice/corn)",1,"box","Pantry & Dry Goods",2.99],["Cucumbers",2,"ct","Produce",0.69],
+         ["Red bell peppers",2,"ct","Produce",1.29]]},
+  {id:"l_leftovers", name:"Leftovers / chicken-rice bowls", aud:"fam", cost:0,
+   note:"Reheat last night's dinner. Zero extra shopping.", ings:[]},
+  {id:"l_tunabowl", name:"Tuna rice bowl", aud:"adult", cost:6,
+   note:"Canned tuna over rice with cucumber, scallion greens, olive oil & lemon. Fast and filling.",
+   ings:[["Canned tuna",2,"can","Pantry & Dry Goods",1.99],["Jasmine or basmati rice",1,"bag","Pantry & Dry Goods",2.99],
+         ["Cucumbers",2,"ct","Produce",0.69],["Scallions (green tops only)",1,"bunch","Produce",0.99],["Lemons",2,"ct","Produce",0.69]]},
+  {id:"l_chopped", name:"Summer salad or turkey wrap", aud:"adult", cost:7,
+   note:"☀️ Summer pick. Romaine, cucumber, tomato & bell pepper with grilled chicken, olive oil & lemon — or roll it all in a tortilla as a wrap.",
+   ings:[["Grilled chicken strips",1,"bag","Meat & Seafood",8.99],["Romaine or little gem lettuce",1,"head","Produce",2.49],
+         ["Cucumbers",2,"ct","Produce",0.69],["Roma tomatoes",3,"ct","Produce",0.50],["Red bell peppers",2,"ct","Produce",1.29],
+         ["Corn tortillas (for wraps)",1,"pkg","Bakery & Bread",1.99]]},
+  {id:"l_soup", name:"Cozy chicken & rice soup", aud:"adult", cost:6,
+   note:"❄️ Winter pick. Simmer chicken, rice & carrots in low-FODMAP broth (or water + herbs) — most boxed broths hide onion/garlic, so check the label.",
+   ings:[["Chicken breast or tenders",1,"lb","Meat & Seafood",5.49],["Jasmine or basmati rice",1,"bag","Pantry & Dry Goods",2.99],
+         ["Carrots",1,"bag","Produce",1.29],["Low-FODMAP chicken broth",1,"box","Pantry & Dry Goods",2.99]]},
+  {id:"l_wafflekid", name:"Waffles + fruit (kid lunch)", aud:"kid", cost:4,
+   note:"Toast frozen waffles, add berries or banana and a little maple syrup. Quick kid lunch.",
+   ings:[["Frozen waffles",1,"box","Frozen",2.99],["Bananas",1,"bunch","Produce",1.99],["Blueberries",1,"pkg","Produce",3.49]]},
+  // ---- Easy FRESH lunches (no cooking or quick assembly) ----
+  {id:"l_chicksalad", name:"Chicken salad lettuce cups", aud:"fam", cost:6,
+   note:"Mix chicken with mayo, halved grapes & chives; spoon into butter-lettuce cups (or onto sourdough). Fresh, no cooking.",
+   ings:[["Grilled chicken strips",1,"bag","Meat & Seafood",8.99],["Mayonnaise",1,"jar","Pantry & Dry Goods",3.49],
+         ["Grapes",1,"bag","Produce",3.99],["Butter or little gem lettuce",1,"head","Produce",2.49],["Chives or scallion greens",1,"bunch","Produce",0.99]]},
+  {id:"l_eggsalad", name:"Egg salad on sourdough", aud:"adult", cost:4,
+   note:"Mash hard-boiled eggs with mayo & chives; pile on sourdough (lower-FODMAP) or in lettuce cups.",
+   ings:[["Eggs",1,"dozen","Dairy & Alternatives",4.49],["Mayonnaise",1,"jar","Pantry & Dry Goods",3.49],
+         ["Chives or scallion greens",1,"bunch","Produce",0.99],["Sourdough bread",1,"loaf","Bakery & Bread",3.99]]},
+  {id:"l_blt", name:"BLT on sourdough", aud:"adult", cost:6,
+   note:"Crisp bacon, then stack with lettuce, tomato & mayo on sourdough. A fresh 10-minute lunch.",
+   ings:[["Bacon",1,"pkg","Meat & Seafood",5.49],["Butter or little gem lettuce",1,"head","Produce",2.49],
+         ["Roma tomatoes",3,"ct","Produce",0.50],["Mayonnaise",1,"jar","Pantry & Dry Goods",3.49],["Sourdough bread",1,"loaf","Bakery & Bread",3.99]]},
+  {id:"l_ricenoodle", name:"Rice noodle & chicken salad", aud:"adult", cost:7,
+   note:"Cold rice noodles tossed with chicken, cucumber, carrot, lime & a few peanuts. Bright and fresh.",
+   ings:[["Rice noodles",1,"pkg","Pantry & Dry Goods",2.49],["Grilled chicken strips",1,"bag","Meat & Seafood",8.99],
+         ["Cucumbers",2,"ct","Produce",0.69],["Carrots",1,"bag","Produce",1.29],["Limes",2,"ct","Produce",0.39],["Peanuts",1,"bag","Snacks",3.99]]},
+  {id:"l_fruitcheese", name:"Fruit, cheese & cracker plate", aud:"kid", cost:5,
+   note:"No-cook plate: string cheese, grapes, strawberries, plain rice crackers & cucumber sticks.",
+   ings:[["Lactose-free cheddar or string cheese",1,"pkg","Dairy & Alternatives",3.99],["Grapes",1,"bag","Produce",3.99],
+         ["Rice crackers (plain)",1,"box","Pantry & Dry Goods",2.99],["Cucumbers",2,"ct","Produce",0.69]]},
+  {id:"l_turkeyrolls", name:"Turkey & cheese roll-ups (no bread)", aud:"kid", cost:5,
+   note:"Roll deli turkey around cheese sticks; serve with cucumber and strawberries. Fresh and hands-on for the kids.",
+   ings:[["Sliced deli turkey",1,"pkg","Meat & Seafood",4.49],["Lactose-free cheddar or string cheese",1,"pkg","Dairy & Alternatives",3.99],
+         ["Cucumbers",2,"ct","Produce",0.69],["Strawberries",1,"pkg","Produce",3.99]]},
+  // ---- Premade TJ's grab-&-go lunches (NOT allergy-screened — check the label) ----
+  {id:"l_p_arugula", name:"TJ's Lemon Chicken & Arugula Salad", aud:"premade", cost:4.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Grab-and-go salad; check the label for garlic/onion/dairy.",
+   ings:[["Lemon Chicken & Arugula Salad",1,"ct","Prepared (grab & go)",4.99]]},
+  {id:"l_p_caesar", name:"TJ's Caesar Salad with Salmon", aud:"premade", cost:6.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Check the label (dressing often has dairy/garlic).",
+   ings:[["Caesar Salad with Salmon",1,"ct","Prepared (grab & go)",6.99]]},
+  {id:"l_p_pasta", name:"TJ's Lemon Basil Pasta Salad", aud:"premade", cost:4.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Check the label.",
+   ings:[["Lemon Basil Pasta Salad",1,"ct","Prepared (grab & go)",4.99]]},
+  {id:"l_p_orzo", name:"TJ's Lemony Chicken Orzo Soup", aud:"premade", cost:4.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Cozy winter soup; check the label for onion/garlic.",
+   ings:[["Lemony Chicken Orzo Soup",1,"ct","Prepared (grab & go)",4.99]]},
+  {id:"l_p_tomfeta", name:"TJ's Tomato Feta Soup", aud:"premade", cost:4.79,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Contains dairy; check the label.",
+   ings:[["Tomato Feta Soup",1,"ct","Prepared (grab & go)",4.79]]},
+  {id:"l_p_broccoli", name:"TJ's Broccoli Cheddar Soup", aud:"premade", cost:4.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Contains dairy; check the label.",
+   ings:[["Broccoli Cheddar Soup",1,"ct","Prepared (grab & go)",4.99]]},
+  {id:"l_p_turkeyapple", name:"TJ's Turkey Apple Cheddar Sandwich", aud:"premade", cost:4.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Contains dairy & bread; check the label.",
+   ings:[["Turkey Apple Cheddar Sandwich",1,"ct","Prepared (grab & go)",4.99]]},
+  {id:"l_p_buffalo", name:"TJ's Buffalo Style Chicken Wrap", aud:"premade", cost:4.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Blue cheese & sauce; check the label.",
+   ings:[["Buffalo Style Chicken Wrap",1,"ct","Prepared (grab & go)",4.99]]},
+  {id:"l_p_tarragon", name:"TJ's Tarragon Chicken Salad Wrap", aud:"premade", cost:4.99,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Check the label.",
+   ings:[["Tarragon Chicken Salad Wrap",1,"ct","Prepared (grab & go)",4.99]]},
+  {id:"l_p_italian", name:"TJ's Italian Style Wrap", aud:"premade", cost:4.49,
+   note:"⚠️ Premade TJ's item — not allergy-screened. Check the label.",
+   ings:[["Italian Style Wrap",1,"ct","Prepared (grab & go)",4.49]]},
+];
+
+const SNACKS = [
+  {id:"s_banana", name:"Bananas", sub:"firm = low FODMAP", ings:[["Bananas",1,"bunch","Produce",1.99]]},
+  {id:"s_blueberry", name:"Blueberries", sub:"low FODMAP", ings:[["Blueberries",1,"pkg","Produce",3.49]]},
+  {id:"s_strawberry", name:"Strawberries", sub:"low FODMAP", ings:[["Strawberries",1,"pkg","Produce",3.99]]},
+  {id:"s_grapes", name:"Grapes", sub:"kid favorite", ings:[["Grapes",1,"bag","Produce",3.99]]},
+  {id:"s_orange", name:"Oranges / clementines", sub:"easy peel", ings:[["Oranges or clementines",1,"bag","Produce",3.99]]},
+  {id:"s_kiwi", name:"Kiwi", sub:"low FODMAP", ings:[["Kiwi",1,"pkg","Produce",2.99]]},
+  {id:"s_cucumber", name:"Cucumber sticks", sub:"crunchy", ings:[["Cucumbers",2,"ct","Produce",0.69]]},
+  {id:"s_carrot", name:"Carrot sticks", sub:"dippable", ings:[["Carrots",1,"bag","Produce",1.29]]},
+  {id:"s_pepper", name:"Bell pepper strips", sub:"red = low FODMAP", ings:[["Red bell peppers",2,"ct","Produce",1.29]]},
+  {id:"s_cheese", name:"String cheese / lactose-free", sub:"adults lactose-free", ings:[["Lactose-free cheddar or string cheese",1,"pkg","Dairy & Alternatives",3.99]]},
+  {id:"s_eggs", name:"Hard-boiled eggs", sub:"protein", ings:[["Eggs",1,"dozen","Dairy & Alternatives",4.49]]},
+  {id:"s_popcorn", name:"Popcorn", sub:"plain/lightly salted", ings:[["Organic popcorn",1,"bag","Snacks",2.99]]},
+  {id:"s_ricecake", name:"Rice cakes", sub:"plain", ings:[["Rice cakes",1,"pkg","Snacks",1.99]]},
+  {id:"s_potatochip", name:"Potato chips", sub:"plain only", ings:[["Plain potato chips",1,"bag","Snacks",2.99]]},
+  {id:"s_tortillachip", name:"Corn tortilla chips", sub:"plain salted", ings:[["Corn tortilla chips",1,"bag","Snacks",2.99]]},
+  {id:"s_pretzel", name:"Pretzels", sub:"small servings", ings:[["Pretzels",1,"bag","Snacks",2.49]]},
+  {id:"s_plantain", name:"Plantain chips", sub:"low FODMAP", ings:[["Plantain chips",1,"bag","Snacks",1.99]]},
+  {id:"s_freezedried", name:"Freeze-dried fruit", sub:"strawberry/banana", ings:[["Freeze-dried strawberries or bananas",1,"bag","Snacks",2.99]]},
+  {id:"s_olives", name:"Olives", sub:"savory", ings:[["Olives (snack cups or jar)",1,"pkg","Snacks",3.99]]},
+  {id:"s_muffin", name:"Banana-oat muffins (baked)", sub:"baked = dairy OK", ings:[["Rolled oats",1,"bag","Pantry & Dry Goods",3.49],["Bananas",1,"bunch","Produce",1.99],["Eggs",1,"dozen","Dairy & Alternatives",4.49],["Maple syrup",1,"bottle","Pantry & Dry Goods",7.99]]},
+  {id:"s_pbbanana", name:"PB + banana", sub:"low-FODMAP portion", ings:[["Peanut butter",1,"jar","Pantry & Dry Goods",2.49],["Bananas",1,"bunch","Produce",1.99]]},
+  {id:"s_yogurtalt", name:"Coconut/almond yogurt", sub:"dairy-free", ings:[["Dairy-free yogurt (coconut/almond)",1,"pkg","Dairy & Alternatives",3.99]]},
+  {id:"s_waffle", name:"Toaster waffle", sub:"family favorite", ings:[["Frozen waffles",1,"box","Frozen",2.99]]},
+];
+
+const STAPLES = [
+  ["Garlic-infused olive oil",1,"bottle","Pantry & Dry Goods",6.99],
+  ["Olive oil",1,"bottle","Pantry & Dry Goods",9.99],
+  ["Salt",1,"box","Pantry & Dry Goods",1.99],
+];
+
+// Estimated INSOLUBLE fiber per typical serving (grams) — rough, for goal-tracking only
+const FIBER = {
+  d_sheetpan:4, d_turkeybowl:3, d_pasta:3, d_nuggets:4, d_tacos:5, d_salmon:3, d_shrimp:3, d_steak:5, d_macncheese:3, d_waffles:3, d_pizza:2,
+  l_rollups:3, l_bento:3, l_quesadilla:4, l_pastasalad:3, l_leftovers:3, l_tunabowl:2, l_chopped:5, l_soup:3, l_wafflekid:3,
+  l_chicksalad:3, l_eggsalad:2, l_blt:3, l_ricenoodle:4, l_fruitcheese:3, l_turkeyrolls:3,
+  l_p_arugula:5, l_p_caesar:4, l_p_pasta:3, l_p_orzo:3, l_p_tomfeta:3, l_p_broccoli:3, l_p_turkeyapple:4, l_p_buffalo:3, l_p_tarragon:3, l_p_italian:3,
+  s_banana:1.5, s_blueberry:2, s_strawberry:2, s_grapes:1, s_orange:2, s_kiwi:2, s_cucumber:1, s_carrot:2, s_pepper:1.5,
+  s_cheese:0, s_eggs:0, s_popcorn:3.5, s_ricecake:0.5, s_potatochip:1, s_tortillachip:1.5, s_pretzel:1, s_plantain:2,
+  s_freezedried:2, s_olives:1, s_muffin:3, s_pbbanana:2.5, s_yogurtalt:0, s_waffle:1
+};
+function isSummer(){const m=new Date().getMonth();return m>=3&&m<=8;} // Apr–Sep
+const SUMMER_ADULTLUNCH = ["l_chopped","l_chicksalad","l_leftovers","l_blt","l_p_arugula"];
+const WINTER_ADULTLUNCH = ["l_soup","l_p_orzo","l_leftovers","l_p_broccoli","l_p_tomfeta"];
+
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+// who-eats-what eligibility: kids see kid + whole-family; grown-ups see grown-up + whole-family
+const KID_LUNCHES = LUNCHES.filter(m=>m.aud==="kid"||m.aud==="fam");
+const ADULT_LUNCHES = LUNCHES.filter(m=>m.aud==="adult"||m.aud==="fam"||m.aud==="premade");
+const DEFAULT_DINNERS = ["d_sheetpan","d_turkeybowl","d_nuggets","d_salmon","d_tacos"];
+const DEFAULT_KIDLUNCH = ["l_quesadilla","l_turkeyrolls","l_leftovers","l_wafflekid","l_fruitcheese"];
+const DEFAULT_ADULTLUNCH = (isSummer()?SUMMER_ADULTLUNCH:WINTER_ADULTLUNCH).slice();
+const DEFAULT_KIDSNACKS = ["s_banana","s_grapes","s_cheese","s_waffle","s_strawberry"];
+const DEFAULT_ADULTSNACKS = ["s_blueberry","s_carrot","s_popcorn","s_pbbanana","s_olives"];
+const TAGTXT = {fam:"Whole family", kid:"Kid", adult:"Grown-up", premade:"TJ's premade", backup:"Backup"};
+const STAPLE_KEYS = STAPLES.map(s=>s[0]+"|"+s[2]);
+
+const store = {
+  get(k,f){ try{const v=localStorage.getItem(k);return v?JSON.parse(v):f;}catch(e){return f;} },
+  set(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+};
+let state = {
+  dinners:    store.get("mp6_dinners",    DEFAULT_DINNERS.slice()),
+  kidLunch:   store.get("mp6_kidLunch",   DEFAULT_KIDLUNCH.slice()),
+  adultLunch: store.get("mp6_adultLunch", DEFAULT_ADULTLUNCH.slice()),
+  kidSnacks:  store.get("mp6_kidSnacks",  DEFAULT_KIDSNACKS.slice()),
+  adultSnacks:store.get("mp6_adultSnacks",DEFAULT_ADULTSNACKS.slice()),
+  checked:    store.get("mp6_checked", {}),
+  skipped:    store.get("mp6_skipped", {})
+};
+function save(){ ["dinners","kidLunch","adultLunch","kidSnacks","adultSnacks","checked","skipped"]
+  .forEach(k=>store.set("mp6_"+k,state[k])); }
+const byId=(arr,id)=>arr.find(x=>x.id===id);
+const money=n=>"$"+(Math.round(n*100)/100).toFixed(2).replace(/\.00$/,"");
+function optionList(arr,sel){return arr.map(m=>`<option value="${m.id}" ${m.id===sel?"selected":""}>${m.name}</option>`).join("");}
+function metaChips(m){
+  if(!m) return "";
+  const f=FIBER[m.id]||0;
+  return `<span class="chip ${m.aud}"><i class="dot"></i>${TAGTXT[m.aud]}</span>`+
+    `<span class="chip cost">${money(m.cost)}</span>`+
+    `<span class="chip ${f>=4?'fiberhi':'fiber'}">${f}g fiber</span>`;
+}
+function lunchLine(who,whoLbl,arr,opts,i){
+  const m=byId(LUNCHES,arr[i]);
+  return `<div class="slot"><span class="lbl">${whoLbl}</span><select data-type="${who}" data-i="${i}">${optionList(opts,arr[i])}</select></div>
+    <div class="meta">${metaChips(m)}</div>
+    ${m&&m.note?`<div class="note">${m.note}</div>`:""}`;
+}
+
+let openDays = DAYS.map((_,i)=>i===0); // first day expanded by default
+function renderPlan(){
+  const root=document.getElementById("days");
+  root.innerHTML = DAYS.map((day,i)=>{
+    const d=byId(DINNERS,state.dinners[i]);
+    const recipe = d&&d.recipe ? `<details class="recipe"><summary>Recipe &amp; steps</summary>
+        <ol>${d.recipe.map(s=>`<li>${s}</li>`).join("")}</ol></details>` : "";
+    return `<details class="day" data-i="${i}"${openDays[i]?" open":""}>
+      <summary><span class="d-day">${day}</span><span class="d-sum">${d?d.name:""}</span><span class="d-chev"></span></summary>
+      <div class="day-body">
+        <div class="slot"><span class="lbl">Dinner <small>· shared by all</small></span><select data-type="dinner" data-i="${i}">${optionList(DINNERS,state.dinners[i])}</select></div>
+        <div class="meta">${metaChips(d)}</div>
+        ${recipe}
+        ${lunchLine("kidlunch","Kids' lunch",state.kidLunch,KID_LUNCHES,i)}
+        ${lunchLine("adultlunch","Grown-up lunch",state.adultLunch,ADULT_LUNCHES,i)}
+      </div>
+    </details>`;
+  }).join("");
+  root.querySelectorAll("details.day").forEach(det=>det.addEventListener("toggle",()=>{openDays[+det.dataset.i]=det.open;}));
+  root.querySelectorAll("select").forEach(sel=>sel.addEventListener("change",e=>{
+    root.querySelectorAll("details.day").forEach(det=>{openDays[+det.dataset.i]=det.open;}); // keep expanded state through re-render
+    const i=+e.target.dataset.i, t=e.target.dataset.type;
+    if(t==="dinner") state.dinners[i]=e.target.value;
+    else if(t==="kidlunch") state.kidLunch[i]=e.target.value;
+    else state.adultLunch[i]=e.target.value;
+    save(); renderPlan(); renderList(); renderHero(); renderFiber();
+  }));
+}
+
+function renderSnackGrid(gridId,arr){
+  const grid=document.getElementById(gridId);
+  grid.innerHTML = SNACKS.map(s=>`<label class="snack">
+      <input type="checkbox" data-id="${s.id}" ${arr.includes(s.id)?"checked":""}>
+      <span><span class="s-name">${s.name}</span><br><span class="s-sub">${s.sub}</span></span></label>`).join("");
+  grid.querySelectorAll("input").forEach(cb=>cb.addEventListener("change",e=>{
+    const id=e.target.dataset.id;
+    if(e.target.checked){if(!arr.includes(id))arr.push(id);} else {const j=arr.indexOf(id);if(j>-1)arr.splice(j,1);}
+    save(); renderList(); renderHero(); renderFiber();
+  }));
+}
+function renderSnacks(){ renderSnackGrid("kidSnackGrid",state.kidSnacks); renderSnackGrid("adultSnackGrid",state.adultSnacks); }
+
+function buildIngredients(){
+  const all=[];
+  state.dinners.forEach(id=>{const m=byId(DINNERS,id); if(m) all.push(...m.ings);});
+  state.kidLunch.forEach(id=>{const m=byId(LUNCHES,id); if(m) all.push(...m.ings);});
+  state.adultLunch.forEach(id=>{const m=byId(LUNCHES,id); if(m) all.push(...m.ings);});
+  state.kidSnacks.forEach(id=>{const m=byId(SNACKS,id); if(m) all.push(...m.ings);});
+  state.adultSnacks.forEach(id=>{const m=byId(SNACKS,id); if(m) all.push(...m.ings);});
+  all.push(...STAPLES);
+  const map={};
+  all.forEach(([item,qty,unit,section,price])=>{
+    const key=item+"|"+unit;
+    if(map[key]) map[key].qty+=qty; else map[key]={item,qty,unit,section,price,key};
+  });
+  return Object.values(map);
+}
+const fmtQty=q=>Number.isInteger(q)?q:q.toFixed(1);
+
+function renderList(){
+  const items=buildIngredients(), out=document.getElementById("listOut");
+  if(!items.length){out.innerHTML=`<div class="empty">No items yet — pick some meals and snacks.</div>`;document.getElementById("listTotal").textContent="$0";return;}
+  const grouped={}; SECTIONS.forEach(s=>grouped[s]=[]);
+  items.forEach(it=>{(grouped[it.section]=grouped[it.section]||[]).push(it);});
+  let grand=0;
+  out.innerHTML = SECTIONS.filter(s=>grouped[s]&&grouped[s].length).map(s=>{
+    let sub=0;
+    const lis=grouped[s].sort((a,b)=>a.item.localeCompare(b.item)).map(it=>{
+      const line=it.price*it.qty; const key=it.key; const ck=state.checked[key]; const sk=state.skipped[key];
+      if(!sk) sub+=line;
+      const q = it.qty>1?`<span class="qtytxt">×${fmtQty(it.qty)} ${it.unit}</span> `:"";
+      const kk=key.replace(/"/g,'&quot;');
+      return `<li class="${ck?'checked':''} ${sk?'skipped':''}">
+        <input type="checkbox" aria-label="${it.item}" data-key="${kk}" ${ck?'checked':''} ${sk?'disabled':''}>
+        <label>${it.item} ${q}</label><span class="price">${money(line)}</span>
+        <button class="skip ${sk?'on':''}" data-skip="${kk}">${sk?'Need it':'Have it'}</button></li>`;
+    }).join("");
+    grand+=sub;
+    return `<div class="list-section"><h4>${s}<span class="ct">${money(sub)}</span></h4><ul class="items">${lis}</ul></div>`;
+  }).join("");
+  document.getElementById("listTotal").textContent=money(grand);
+  out.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener("change",e=>{
+    const k=e.target.dataset.key;
+    if(e.target.checked) state.checked[k]=true; else delete state.checked[k];
+    save(); e.target.closest("li").classList.toggle("checked",e.target.checked);
+  }));
+  out.querySelectorAll('.skip').forEach(btn=>btn.addEventListener("click",e=>{
+    const k=e.target.dataset.skip;
+    if(state.skipped[k]) delete state.skipped[k]; else state.skipped[k]=true;
+    save(); renderList(); renderHero();
+  }));
+}
+
+function renderHero(){
+  const items=buildIngredients();
+  const total=items.reduce((a,it)=>a+(state.skipped[it.key]?0:it.price*it.qty),0);
+  const buy=items.filter(it=>!state.skipped[it.key]).length;
+  document.getElementById("heroTotal").textContent=money(total);
+  document.getElementById("heroItems").textContent=buy;
+}
+
+const meanFib=ids=>ids.length?ids.reduce((a,id)=>a+(FIBER[id]||0),0)/ids.length:0;
+function setGauge(id,val,target){
+  const el=document.getElementById(id), pct=Math.min(100,Math.round(val/target*100));
+  el.querySelector(".fill").style.width=pct+"%";
+  el.querySelector(".fill").classList.toggle("under",val<target);
+  el.querySelector(".gval").textContent=`~${val.toFixed(0)}g / ${target}g`;
+}
+function renderFiber(){
+  let aSum=0,kSum=0;
+  for(let i=0;i<DAYS.length;i++){
+    aSum += (FIBER[state.dinners[i]]||0) + (FIBER[state.adultLunch[i]]||0);
+    kSum += (FIBER[state.dinners[i]]||0)*0.5 + (FIBER[state.kidLunch[i]]||0);
+  }
+  const aDaily = aSum/DAYS.length + 2*meanFib(state.adultSnacks);
+  const kDaily = kSum/DAYS.length + 2*meanFib(state.kidSnacks)*0.6;
+  setGauge("adultGauge",aDaily,25);
+  setGauge("kidGauge",kDaily,10);
+  document.getElementById("heroFiber").textContent=`~${aDaily.toFixed(0)}g`;
+  document.getElementById("adultTip").textContent = aDaily>=25
+    ? "On track — you're hitting ~25g of insoluble fiber a day. 🎉"
+    : `About ${Math.max(0,Math.round(25-aDaily))}g short of 25g. Add popcorn or berries, a side of green beans, swap to brown rice, and keep the skins on your potatoes.`;
+}
+function renderSeason(){
+  const summer=isSummer();
+  document.getElementById("seasonBar").innerHTML =
+    `${summer?"☀️ It's salad &amp; wrap season":"❄️ It's soup season"} — set the grown-up lunches to match? `+
+    `<button class="btn ghost mini" id="applySeason">Apply ${summer?"summer salads/wraps":"winter soups"}</button>`;
+  document.getElementById("applySeason").addEventListener("click",()=>{
+    state.adultLunch=(summer?SUMMER_ADULTLUNCH:WINTER_ADULTLUNCH).slice();
+    save(); renderPlan(); renderList(); renderHero(); renderFiber();
+  });
+}
+
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); document.getElementById(b.dataset.tab).classList.add("active");
+  window.scrollTo({top:0,behavior:"smooth"});
+}));
+document.querySelectorAll('[data-clear]').forEach(btn=>btn.addEventListener("click",e=>{
+  if(e.target.dataset.clear==="kid") state.kidSnacks=[]; else state.adultSnacks=[];
+  save(); renderSnacks(); renderList(); renderHero(); renderFiber();
+}));
+document.getElementById("skipStaples").addEventListener("click",()=>{
+  const allSkipped=STAPLE_KEYS.every(k=>state.skipped[k]);
+  STAPLE_KEYS.forEach(k=>{ if(allSkipped) delete state.skipped[k]; else state.skipped[k]=true; });
+  save(); renderList(); renderHero();
+});
+document.getElementById("uncheckAll").addEventListener("click",()=>{state.checked={};state.skipped={};save();renderList();renderHero();});
+document.getElementById("expandAll").addEventListener("click",()=>{openDays=DAYS.map(()=>true);renderPlan();});
+document.getElementById("collapseAll").addEventListener("click",()=>{openDays=DAYS.map(()=>false);renderPlan();});
+
+renderPlan(); renderSnacks(); renderList(); renderHero(); renderFiber(); renderSeason();
+</script>
+</body>
+</html>
