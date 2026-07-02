@@ -56,7 +56,8 @@
   details.day[open] > summary{border-bottom:1px solid var(--line-2);}
   details.day > summary:hover .d-sum{color:var(--ink);}
   .day-body{padding:16px 18px 18px;}
-  .plan-tools{display:flex;gap:8px;justify-content:flex-end;margin:0 0 12px;}
+  .plan-tools{display:flex;gap:8px;justify-content:space-between;align-items:center;margin:0 0 12px;flex-wrap:wrap;}
+  .tool-group{display:flex;gap:8px;}
   .slot{margin:15px 0 0;}
   .slot:first-of-type{margin-top:0;}
   .lbl{display:block;font-size:.67rem;text-transform:uppercase;letter-spacing:.09em;color:var(--faint);font-weight:700;margin-bottom:6px;}
@@ -201,7 +202,7 @@
 
   <section class="view active" id="plan">
     <div class="season-bar" id="seasonBar"></div>
-    <div class="plan-tools"><button class="btn ghost mini" id="expandAll">Expand all</button><button class="btn ghost mini" id="collapseAll">Collapse all</button></div>
+    <div class="plan-tools"><button class="btn gold" id="shuffleWeek">🎲 Shuffle my week</button><div class="tool-group"><button class="btn ghost mini" id="expandAll">Expand all</button><button class="btn ghost mini" id="collapseAll">Collapse all</button></div></div>
     <div class="fiber-card">
       <h3>Insoluble fiber focus</h3>
       <div class="gauge" id="adultGauge"><div class="glabel"><span>Grown-up — goal 25g/day</span><span class="gval">~0g</span></div><div class="track"><div class="fill"></div></div></div>
@@ -655,6 +656,20 @@ document.getElementById("skipStaples").addEventListener("click",()=>{
 document.getElementById("uncheckAll").addEventListener("click",()=>{state.checked={};state.skipped={};save();renderList();renderHero();});
 document.getElementById("expandAll").addEventListener("click",()=>{openDays=DAYS.map(()=>true);renderPlan();});
 document.getElementById("collapseAll").addEventListener("click",()=>{openDays=DAYS.map(()=>false);renderPlan();});
+function pickWeek(pool){
+  const ids=pool.map(m=>m.id).sort(()=>Math.random()-0.5);
+  return DAYS.map((_,i)=>ids[i % ids.length]);
+}
+function pickSnacks(n){ return SNACKS.map(s=>s.id).sort(()=>Math.random()-0.5).slice(0,n); }
+function shuffleWeek(){
+  state.dinners   = pickWeek(DINNERS.filter(m=>m.aud!=="backup")); // keep pizza as a manual backup only
+  state.kidLunch  = pickWeek(KID_LUNCHES);
+  state.adultLunch= pickWeek(ADULT_LUNCHES);
+  state.kidSnacks = pickSnacks(5);
+  state.adultSnacks = pickSnacks(5);
+  save(); renderPlan(); renderSnacks(); renderList(); renderHero(); renderFiber();
+}
+document.getElementById("shuffleWeek").addEventListener("click",shuffleWeek);
 
 renderPlan(); renderSnacks(); renderList(); renderHero(); renderFiber(); renderSeason();
 </script>
